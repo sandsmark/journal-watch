@@ -42,18 +42,26 @@ static std::string fetchField(sd_journal *journal, const std::string &field)
 {
     char *message = nullptr;
     size_t messageLength = 0ULL;
-    int ret = sd_journal_get_data(journal, field.c_str(), (const void **) &message, &messageLength);
+    for (int retries = 0; retries < 10; retries++) {
+        const int ret = sd_journal_get_data(journal, field.c_str(), (const void **) &message, &messageLength);
+        if (-ret == EAGAIN) {
+            continue;
+        }
 
-    if (ret < 0) {
-        perror(("Failed to fetch field " + field).c_str());
-        return "";
+        if (ret < 0) {
+            perror(("Failed to fetch field " + field + "(" + strerror(-ret) + ")").c_str());
+            return "";
+        }
+
+        // + 1 since the message is returned as FIELD=whatwewant
+        const size_t fieldLength = field.size() + 1;
+        const int textLength = messageLength - fieldLength;
+
+        return std::string(message + fieldLength, textLength);;
     }
 
-    // + 1 since the message is returned as FIELD=whatwewant
-    const size_t fieldLength = field.size() + 1;
-    const int textLength = messageLength - fieldLength;
-
-    return std::string(message + fieldLength, textLength);;
+    puts(("Timeout fetching field " + field).c_str());
+    return "";
 }
 
 static int print_journal_message(sd_journal *j)
