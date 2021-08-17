@@ -101,18 +101,18 @@ static int print_journal_message(sd_journal *j)
 
 int run(sd_journal * * const journal)
 {
-    int r = sd_journal_seek_tail(*journal);
+    int ret = sd_journal_seek_tail(*journal);
 
-    if (r < 0) {
+    if (ret < 0) {
         perror("Failed to seek to the end of system journal");
         return errno;
     }
 
     /* Tail -f displays last 10 messages */
     for (int i = 0; i < 10; i++) {
-        r = sd_journal_previous(*journal);
+        const int ret = sd_journal_previous(*journal);
 
-        if (r < 0) {
+        if (ret < 0) {
             perror("Failed to move backwards in journal");
             return errno;
         }
@@ -140,9 +140,9 @@ int run(sd_journal * * const journal)
     ev.events = sd_journal_get_events(*journal);
     ev.data.fd = fd;
 
-    r = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev);
+    ret = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev);
 
-    if (r < 0) {
+    if (ret < 0) {
         perror("Failed to add system journal file descriptor to epoll instance");
         return errno;
     }
@@ -219,7 +219,7 @@ int run(sd_journal * * const journal)
             }
 
             ret = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev);
-            if (r < 0) {
+            if (ret < 0) {
                 perror("Failed to add system journal file descriptor to epoll instance");
                 return errno;
             }
