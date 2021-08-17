@@ -101,18 +101,14 @@ static int print_journal_message(sd_journal *j)
 
 int run(sd_journal * * const journal)
 {
-    int ret = sd_journal_seek_tail(*journal);
-
-    if (ret < 0) {
+    if (sd_journal_seek_tail(*journal) < 0) {
         perror("Failed to seek to the end of system journal");
         return errno;
     }
 
     /* Tail -f displays last 10 messages */
     for (int i = 0; i < 10; i++) {
-        const int ret = sd_journal_previous(*journal);
-
-        if (ret < 0) {
+        if (sd_journal_previous(*journal) < 0) {
             perror("Failed to move backwards in journal");
             return errno;
         }
@@ -140,9 +136,7 @@ int run(sd_journal * * const journal)
     ev.events = sd_journal_get_events(*journal);
     ev.data.fd = fd;
 
-    ret = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev);
-
-    if (ret < 0) {
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0) {
         perror("Failed to add system journal file descriptor to epoll instance");
         return errno;
     }
@@ -187,24 +181,23 @@ int run(sd_journal * * const journal)
 
             uint64_t usec;
             sd_id128_t boot_id;
-            int ret = sd_journal_get_monotonic_usec(*journal, &usec, &boot_id);
 
             bool seek = true;
-            if (ret < 0) {
+            if (sd_journal_get_monotonic_usec(*journal, &usec, &boot_id) < 0) {
                 perror("Failed to obtain monotonic timestap for current journal entry");
                 seek = false;
             }
 
             sd_journal_close(*journal);
 
-            ret = sd_journal_open(journal, SD_JOURNAL_SYSTEM | SD_JOURNAL_CURRENT_USER | SD_JOURNAL_LOCAL_ONLY);
+            const int ret = sd_journal_open(journal, SD_JOURNAL_SYSTEM | SD_JOURNAL_CURRENT_USER | SD_JOURNAL_LOCAL_ONLY);
             if (ret < 0) {
                 perror("Failed to open system journal");
                 exit(EXIT_FAILURE);
             }
 
             if (seek) {
-                int ret = sd_journal_seek_monotonic_usec(*journal, boot_id, usec);
+                const int ret = sd_journal_seek_monotonic_usec(*journal, boot_id, usec);
 
                 if (ret < 0) {
                     perror("Failed to seek to last seen entry");
@@ -218,8 +211,7 @@ int run(sd_journal * * const journal)
                 return errno;
             }
 
-            ret = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev);
-            if (ret < 0) {
+            if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0) {
                 perror("Failed to add system journal file descriptor to epoll instance");
                 return errno;
             }
