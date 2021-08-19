@@ -86,13 +86,16 @@ static int print_journal_message(sd_journal *j)
     time_t sec = usec / 1000000;
     std::tm tm;
     localtime_r(&sec, &tm);
-    std::cout
-        << "\033[02;37m"
+    std::cout << "\033[02;37m"
         << std::put_time(&tm, "%H:%M:%S %b %d ")
         << fetchField(j, "_HOSTNAME") << ":"
         << getUsername(fetchField(j, "_UID")) << " "
-        << fetchField(j, "_COMM") << "["
-        << fetchField(j, "_PID") << "]: "
+        << fetchField(j, "_COMM");
+    const std::string pid = fetchField(j, "_PID");
+    if (!pid.empty()) {
+        std::cout << "[" << pid << "]";
+    }
+    std::cout << ": "
         << (highPriority ? "\033[01;37m" : "\033[0m")
         << fetchField(j, "MESSAGE")
         << "\033[0m"
