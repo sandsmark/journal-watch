@@ -41,7 +41,7 @@ namespace Color {
     const char *yellow = "\033[00;93m";
     const char *brightYellow = "\033[01;33m";
 
-    const char *orange = "\033[00;33";
+    const char *orange = "\033[00;33m";
     const char *red = "\033[00;31m";
     const char *brightRed = "\033[00;101m";
 
