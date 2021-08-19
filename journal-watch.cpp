@@ -260,7 +260,7 @@ int run(sd_journal * * const journal)
 
             sd_journal_close(*journal);
 
-            const int ret = sd_journal_open(journal, SD_JOURNAL_SYSTEM | SD_JOURNAL_CURRENT_USER | SD_JOURNAL_LOCAL_ONLY);
+            const int ret = sd_journal_open(journal, SD_JOURNAL_LOCAL_ONLY);
             if (ret < 0) {
                 perror("Failed to open system journal");
                 exit(EXIT_FAILURE);
