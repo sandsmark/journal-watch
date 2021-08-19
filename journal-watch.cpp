@@ -16,6 +16,37 @@ extern "C" {
 #include <iostream>
 #include <iomanip>
 
+enum LogLevel {
+    Emergency = 0,
+    Alert = 1,
+    Critical = 2,
+    Error = 3,
+    Warning = 4,
+    Notice = 5,
+    Informational = 6,
+    Debug = 7
+};
+namespace Color {
+    const char *brightGray = "\033[00;37m";
+
+    const char *white = "\033[00;39m";
+    const char *brightWhite = "\033[01;39m";
+
+    const char *blue = "\033[00;34m";
+    const char *brightBlue = "\033[01;34m";
+
+    const char *green = "\033[00;32m";
+    const char *brightGreen = "\033[01;32m";
+
+    const char *yellow = "\033[00;93m";
+    const char *brightYellow = "\033[01;33m";
+
+    const char *orange = "\033[00;33";
+    const char *red = "\033[00;31m";
+    const char *brightRed = "\033[00;101m";
+
+    const char *reset = "\033[0m";
+};
 
 static std::string getUsername(const std::string &uidString)
 {
@@ -75,13 +106,39 @@ static int print_journal_message(sd_journal *j)
         return ret;
     }
 
-    bool highPriority = false;
+    int level = Debug;
     try {
-        int priority = std::stoi(fetchField(j, "PRIORITY"));
-        if (priority < 6) {
-            highPriority = true;
-        }
+        level = std::stoi(fetchField(j, "PRIORITY"));
     } catch (const std::exception &) {}
+
+    const char *color = Color::white;
+    switch(level) {
+    case Emergency:
+        color = Color::brightRed;
+        break;
+    case Alert:
+        color = Color::red;
+        break;
+    case Critical:
+        color = Color::orange;
+        break;
+    case Error:
+        color = Color::brightYellow;
+        break;
+    case Warning:
+        color = Color::yellow;
+        break;
+    case Notice:
+        color = Color::green;
+        break;
+    case Informational:
+        color = Color::white;
+        break;
+    case Debug:
+    default:
+        color = Color::brightGray;
+        break;
+    }
 
     time_t sec = usec / 1000000;
     std::tm tm;
@@ -96,9 +153,9 @@ static int print_journal_message(sd_journal *j)
         std::cout << "[" << pid << "]";
     }
     std::cout << ": "
-        << (highPriority ? "\033[01;37m" : "\033[0m")
+        << color
         << fetchField(j, "MESSAGE")
-        << "\033[0m"
+        << Color::reset
         << std::endl
     ;
 
