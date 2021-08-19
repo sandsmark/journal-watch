@@ -176,15 +176,17 @@ int run(sd_journal * * const journal)
         return errno;
     }
 
+    const int history = 20;
+
     /* Tail -f displays last 10 messages */
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < history; i++) {
         if (sd_journal_previous(*journal) < 0) {
             perror("Failed to move backwards in journal");
             return errno;
         }
     }
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < history; i++) {
         print_journal_message(*journal);
         sd_journal_next(*journal);
     }
