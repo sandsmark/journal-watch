@@ -1,3 +1,4 @@
+extern "C" {
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -6,13 +7,15 @@
 #include <sys/epoll.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <unistd.h>
+#include <systemd/sd-journal.h>
+} // extern "C"
 
 #include <ctime>
 #include <string>
 #include <iostream>
 #include <iomanip>
 
-#include <systemd/sd-journal.h>
 
 static std::string getUsername(const std::string &uidString)
 {
@@ -225,6 +228,10 @@ int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
+
+    if (getuid() != 0) {
+        puts("Not running as root, will only print user journal");
+    }
 
     sd_journal *journal;
     int ret = sd_journal_open(&journal, SD_JOURNAL_LOCAL_ONLY);
