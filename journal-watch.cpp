@@ -146,12 +146,19 @@ static int print_journal_message(sd_journal *j)
     std::cout << "\033[02;37m"
         << std::put_time(&tm, "%H:%M:%S %b %d ")
         << fetchField(j, "_HOSTNAME") << ":"
-        << getUsername(fetchField(j, "_UID")) << " "
-        << fetchField(j, "_COMM");
+        << getUsername(fetchField(j, "_UID")) << " ";
+
+    std::string identifier = fetchField(j, "SYSLOG_IDENTIFIER");
+    if (identifier.empty()) {
+        identifier = fetchField(j, "_COMM");
+    }
+    std::cout << identifier;
+
     const std::string pid = fetchField(j, "_PID");
     if (!pid.empty()) {
         std::cout << "[" << pid << "]";
     }
+
     std::cout << ": "
         << color
         << fetchField(j, "MESSAGE")
