@@ -1,7 +1,7 @@
 CCFILES=$(wildcard *.cpp)
-CXXFLAGS += -g -fPIC -std=c++2a -O1 -Wall -Wextra -pedantic
+CXXFLAGS+=-g -fPIC -std=c++2a -Wall -Wextra -pedantic
 OBJECTS=$(patsubst %.cpp, %.o, $(CCFILES))
-LDFLAGS=-lsystemd -g
+LDFLAGS+=-lsystemd -g
 
 #CXXFLAGS += -fsanitize=undefined -fsanitize=address
 #LDFLAGS += -fsanitize=undefined -fsanitize=address
