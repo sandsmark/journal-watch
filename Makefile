@@ -3,8 +3,8 @@ CXXFLAGS += -g -fPIC -std=c++2a -O1 -Wall -Wextra -pedantic
 OBJECTS=$(patsubst %.cpp, %.o, $(CCFILES))
 LDFLAGS=-lsystemd -g
 
-CXXFLAGS += -fsanitize=undefined -fsanitize=address
-LDFLAGS += -fsanitize=undefined -fsanitize=address
+#CXXFLAGS += -fsanitize=undefined -fsanitize=address
+#LDFLAGS += -fsanitize=undefined -fsanitize=address
 
 journal-watch: $(OBJECTS)
 	$(CXX) -o $@ $^ $(LDFLAGS)
