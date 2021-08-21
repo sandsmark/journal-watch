@@ -150,7 +150,11 @@ static int print_journal_message(sd_journal *j)
         << std::put_time(&tm, "%H:%M:%S %b %d ")
         << fetchField(j, "_HOSTNAME");
 
-    const std::string uid = fetchField(j, "_UID");
+    std::string uid = fetchField(j, "_UID");
+    if (uid.empty()) {
+        uid = fetchField(j, "_AUDIT_LOGINUID");
+    }
+
     if (!uid.empty()) {
         std::cout << ":" << getUsername(uid);
     }
