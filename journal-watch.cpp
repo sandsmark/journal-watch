@@ -81,6 +81,9 @@ static std::string fetchField(sd_journal *journal, const std::string &field)
         if (-ret == EAGAIN) {
             continue;
         }
+        if (-ret == ENOENT) { // Field does not exist
+            return "";
+        }
 
         if (ret < 0) {
             perror(("Failed to fetch field " + field + "(" + strerror(-ret) + ")").c_str());
@@ -145,14 +148,18 @@ static int print_journal_message(sd_journal *j)
     localtime_r(&sec, &tm);
     std::cout << "\033[02;37m"
         << std::put_time(&tm, "%H:%M:%S %b %d ")
-        << fetchField(j, "_HOSTNAME") << ":"
-        << getUsername(fetchField(j, "_UID")) << " ";
+        << fetchField(j, "_HOSTNAME");
+
+    const std::string uid = fetchField(j, "_UID");
+    if (!uid.empty()) {
+        std::cout << ":" << getUsername(uid);
+    }
 
     std::string identifier = fetchField(j, "SYSLOG_IDENTIFIER");
     if (identifier.empty()) {
         identifier = fetchField(j, "_COMM");
     }
-    std::cout << identifier;
+    std::cout << " " << identifier;
 
     const std::string pid = fetchField(j, "_PID");
     if (!pid.empty()) {
