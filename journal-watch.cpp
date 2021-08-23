@@ -231,6 +231,10 @@ int run(sd_journal * * const journal)
         struct epoll_event e = {};
         int events = epoll_wait(epoll_fd, &e, 1, timeout);
 
+        if (errno == EINTR) {
+            continue;
+        }
+
         if (events < 0) {
             perror("epoll_wait() failed");
             return errno;
