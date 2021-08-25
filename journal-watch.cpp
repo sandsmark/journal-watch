@@ -224,10 +224,16 @@ int run(sd_journal * * const journal)
         return errno;
     }
 
-    uint64_t timeout = -1;
-    sd_journal_get_timeout(*journal, &timeout);
+    uint64_t timeout = -1lu;
 
     while (true) {
+        sd_journal_get_timeout(*journal, &timeout);
+        if (timeout != -1lu) {
+            timeout /= 1000; // sd_journal_get_timeout returns microseconds, epoll uses milliseconds
+        } else {
+            timeout = 1000; // 1s by default
+        }
+
         struct epoll_event e = {};
         int events = epoll_wait(epoll_fd, &e, 1, timeout);
 
