@@ -180,134 +180,43 @@ static int print_journal_message(sd_journal *j)
     return 0;
 }
 
-int run(sd_journal * * const journal)
+int run(sd_journal *journal)
 {
-    if (sd_journal_seek_tail(*journal) < 0) {
+    if (sd_journal_seek_tail(journal) < 0) {
         perror("Failed to seek to the end of system journal");
         return errno;
     }
 
-    const int history = 20;
-
-    /* Tail -f displays last 10 messages */
+    const int history = 20; // Scroll back 20 messages
     for (int i = 0; i < history; i++) {
-        if (sd_journal_previous(*journal) < 0) {
+        if (sd_journal_previous(journal) < 0) {
             perror("Failed to move backwards in journal");
             return errno;
         }
     }
 
-    for (int i = 0; i < history; i++) {
-        print_journal_message(*journal);
-        sd_journal_next(*journal);
-    }
-
-
-    int fd = sd_journal_get_fd(*journal);
-    if (fd < 0) {
-        perror("Failed to obtain system journal file descriptor");
-        return errno;
-    }
-
-    int epoll_fd = epoll_create1(EPOLL_CLOEXEC);
-    if (epoll_fd < 0) {
-        perror("Failed to create an epoll instance");
-        return errno;
-    }
-
-    struct epoll_event ev = {};
-    ev.events = sd_journal_get_events(*journal);
-    ev.data.fd = fd;
-
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0) {
-        perror("Failed to add system journal file descriptor to epoll instance");
-        return errno;
-    }
-
-    uint64_t timeout = -1lu;
-
     while (true) {
-        sd_journal_get_timeout(*journal, &timeout);
-        if (timeout != -1lu) {
-            timeout /= 1000; // sd_journal_get_timeout returns microseconds, epoll uses milliseconds
-        } else {
-            timeout = 1000; // 1s by default
-        }
-
-        struct epoll_event e = {};
-        int events = epoll_wait(epoll_fd, &e, 1, timeout);
-
-        if (errno == EINTR) {
-            continue;
-        }
-
-        if (events < 0) {
-            perror("epoll_wait() failed");
-            return errno;
-        }
-
-        if (events == 0) {
-            continue;
-        }
-
-        int type = sd_journal_process(*journal);
+        const int type = sd_journal_wait(journal, -1lu);
 
         if (type < 0) {
-            perror("Failed to process system journal event");
-            return errno;
+            printf("Failed to process wait for journal event: %d (%s)\n", type, strerror(-type));
+            return -type;
         }
 
-        if (type == SD_JOURNAL_NOP) {
+        switch(type) {
+        case SD_JOURNAL_NOP:
             continue;
-        } else if (type == SD_JOURNAL_APPEND) {
-            while (sd_journal_next(*journal)) {
-                print_journal_message(*journal);
+        case SD_JOURNAL_INVALIDATE:
+            // We might have missed some events, but it seems spurious
+            // The documentation suggests treating it like SD_JOURNAL_APPEND
+        case SD_JOURNAL_APPEND:
+            while (sd_journal_next(journal)) {
+                print_journal_message(journal);
             }
-        } else {
-            // Invalidated or something, so reopen
-            puts("Log object invalidated, re-opening");
-
-            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
-
-            // Get timestamp of previous
-            sd_journal_previous(*journal);
-
-            uint64_t usec;
-            sd_id128_t boot_id;
-
-            bool seek = true;
-            if (sd_journal_get_monotonic_usec(*journal, &usec, &boot_id) < 0) {
-                perror("Failed to obtain monotonic timestap for current journal entry");
-                seek = false;
-            }
-
-            sd_journal_close(*journal);
-
-            const int ret = sd_journal_open(journal, SD_JOURNAL_LOCAL_ONLY);
-            if (ret < 0) {
-                perror("Failed to open system journal");
-                exit(EXIT_FAILURE);
-            }
-
-            if (seek) {
-                const int ret = sd_journal_seek_monotonic_usec(*journal, boot_id, usec);
-
-                if (ret < 0) {
-                    perror("Failed to seek to last seen entry");
-                    sd_journal_seek_tail(*journal);
-                }
-            }
-
-            fd = sd_journal_get_fd(*journal);
-            if (fd < 0) {
-                perror("Failed to obtain system journal file descriptor");
-                return errno;
-            }
-
-            if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0) {
-                perror("Failed to add system journal file descriptor to epoll instance");
-                return errno;
-            }
+            continue;
+        default:
+            printf("Unhandled type %d\n", type);
+            break;
         }
     }
 
@@ -325,15 +234,12 @@ int main(int argc, char *argv[])
 
     sd_journal *journal;
     int ret = sd_journal_open(&journal, SD_JOURNAL_LOCAL_ONLY);
-
     if (ret < 0) {
         perror("Failed to open system journal");
-        return EXIT_FAILURE;
+        return -ret;
     }
-    ret = run(&journal);
-    if (journal) {
-        sd_journal_close(journal);
-    }
+    ret = run(journal);
+    sd_journal_close(journal);
 
-    return EXIT_FAILURE;
+    return ret;
 }
