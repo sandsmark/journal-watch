@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
     (void)argc;
     (void)argv;
 
-    if (getuid() != 0) {
+    if (geteuid() != 0) {
         puts("Not running as root, will only print user journal");
     }
 
